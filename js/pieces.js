@@ -17,9 +17,9 @@ export function chessPieceSVG(type) {
       <text x="50" y="78" text-anchor="middle"
             font-family="'Segoe UI Symbol','Apple Color Emoji','Noto Sans Symbols2',serif"
             font-size="86"
-            fill="#fafafa"
-            stroke="#111"
-            stroke-width="2"
+            fill="#111"
+            stroke="#fafafa"
+            stroke-width="1.5"
             paint-order="stroke">${glyph}</text>
     </svg>`;
 }
