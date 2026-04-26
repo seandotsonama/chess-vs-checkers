@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chess vs Checkers</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main id="app">
+    <section id="menu" class="screen">
+      <h1>Chess <span class="vs">vs</span> Checkers</h1>
+      <p class="tagline">Asymmetric warfare on an 8&times;8 board.</p>
+      <div class="rules-summary">
+        <div><strong>Chess</strong> wins by capturing all 12 checkers.</div>
+        <div><strong>Checkers</strong> wins by checkmating the chess king.</div>
+      </div>
+      <h2>Choose a mode</h2>
+      <div class="modes">
+        <button class="mode-btn" data-mode="human-human">Human vs Human</button>
+        <button class="mode-btn" data-mode="human-chess">Play as Chess (vs AI)</button>
+        <button class="mode-btn" data-mode="human-checkers">Play as Checkers (vs AI)</button>
+        <button class="mode-btn" data-mode="ai-ai">Computer vs Computer</button>
+      </div>
+    </section>
+
+    <section id="game" class="screen hidden">
+      <header class="game-header">
+        <button id="back-btn" class="ghost">&larr; Menu</button>
+        <div id="status" class="status">Chess to move</div>
+        <button id="restart-btn" class="ghost">Restart</button>
+      </header>
+
+      <div class="game-body">
+        <aside class="side-panel left">
+          <h3>Chess</h3>
+          <div class="captured" id="captured-by-chess" aria-label="Checkers captured by chess"></div>
+        </aside>
+
+        <div class="board-wrap">
+          <div id="board" class="board" role="grid" aria-label="game board"></div>
+          <div id="ai-controls" class="ai-controls hidden">
+            <label for="speed">AI speed</label>
+            <input type="range" id="speed" min="100" max="2500" step="100" value="600" />
+            <span id="speed-label">600 ms</span>
+            <button id="pause-btn">Pause</button>
+          </div>
+        </div>
+
+        <aside class="side-panel right">
+          <h3>Checkers</h3>
+          <div class="captured" id="captured-by-checkers" aria-label="Chess pieces captured by checkers"></div>
+        </aside>
+      </div>
+
+      <div id="banner" class="banner hidden">
+        <div class="banner-card">
+          <h2 id="banner-title"></h2>
+          <p id="banner-sub"></p>
+          <div class="banner-actions">
+            <button id="banner-again">Play again</button>
+            <button id="banner-menu" class="ghost">Menu</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="promotion" class="promotion hidden">
+        <div class="promotion-card">
+          <h3>Promote pawn</h3>
+          <div class="promo-choices">
+            <button data-promo="Q">Queen</button>
+            <button data-promo="R">Rook</button>
+            <button data-promo="B">Bishop</button>
+            <button data-promo="N">Knight</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
