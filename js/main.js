@@ -270,9 +270,11 @@ async function animateMove(move) {
   const path = move.path && move.path.length ? move.path : [move.to];
   let current = move.from;
   for (const step of path) {
+    const fromRect = squareEl(current[0], current[1]).getBoundingClientRect();
     const targetEl = squareEl(step[0], step[1]);
-    const dxPx = (step[1] - current[1]) * 72;
-    const dyPx = (current[0] - step[0]) * 72; // row 0 sits at the bottom visually
+    const toRect = targetEl.getBoundingClientRect();
+    const dxPx = toRect.left - fromRect.left;
+    const dyPx = toRect.top - fromRect.top;
     pieceEl.style.transition = "transform 0.2s ease";
     pieceEl.style.transform = `translate(${dxPx}px, ${dyPx}px)`;
     await sleep(220);
