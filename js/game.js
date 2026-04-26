@@ -15,7 +15,7 @@ export function isDark(r, c) {
   return (r + c) % 2 === 0;
 }
 
-export function createInitialState() {
+export function createInitialState(options = {}) {
   const board = Array.from({ length: 8 }, () => Array(8).fill(null));
   const back = ["R", "N", "B", "Q", "K", "B", "N", "R"];
   for (let c = 0; c < 8; c++) {
@@ -33,6 +33,7 @@ export function createInitialState() {
     winner: null,
     lastMove: null,
     moveCount: 0,
+    options: { backwardCheckers: !!options.backwardCheckers },
   };
 }
 
@@ -71,6 +72,7 @@ export function applyMove(state, move) {
     lastMove: move,
     winner: null,
     moveCount: state.moveCount + 1,
+    options: state.options,
   };
   next.winner = computeWinner(next);
   return next;
@@ -87,7 +89,7 @@ function findKing(board) {
   return null;
 }
 
-export function isInCheck(board) {
+export function isInCheck(board, options = {}) {
   const king = findKing(board);
   if (!king) return true;
   // Generate all checker captures and see if any captures the king.
@@ -95,24 +97,25 @@ export function isInCheck(board) {
     for (let c = 0; c < 8; c++) {
       const p = board[r][c];
       if (!p || p.side !== SIDE_CHECKERS) continue;
-      if (checkerCanReachCapture(board, r, c, king)) return true;
+      if (checkerCanReachCapture(board, r, c, king, options)) return true;
     }
   }
   return false;
 }
 
-function checkerDirs(piece) {
+function checkerDirs(piece, options = {}) {
   if (piece.type === "K") return [[-1,-1],[-1,1],[1,-1],[1,1]];
+  if (options.backwardCheckers) return [[-1,-1],[-1,1],[1,-1],[1,1]];
   // man: moves toward row 0 (chess back rank)
   return [[-1,-1],[-1,1]];
 }
 
 // Recursive scan to see if any chain of captures starting at (r,c) captures `target`.
-function checkerCanReachCapture(board, r, c, target) {
+function checkerCanReachCapture(board, r, c, target, options = {}) {
   const piece = board[r][c];
   const seen = new Set();
   function dfs(curR, curC, captured, virtualBoard) {
-    const dirs = checkerDirs(piece);
+    const dirs = checkerDirs(piece, options);
     for (const [dr, dc] of dirs) {
       const jr = curR + dr, jc = curC + dc;
       const lr = curR + 2 * dr, lc = curC + 2 * dc;
@@ -251,22 +254,23 @@ function kingMoves(board, r, c) {
 
 export function generateChessMoves(state) {
   const board = state.board;
+  const opts = state.options || {};
   const pseudo = [];
   for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
     const p = board[r][c];
     if (p && p.side === SIDE_CHESS) pseudo.push(...pseudoMovesFor(board, r, c));
   }
   const legal = [];
-  const inCheckNow = isInCheck(board);
+  const inCheckNow = isInCheck(board, opts);
   for (const m of pseudo) {
     if (m.castling) {
       if (inCheckNow) continue;
       const interCol = m.castling === "K" ? 5 : 3;
       const interBoard = applyMoveToBoard(board, { from: m.from, to: [0, interCol], captures: [] });
-      if (isInCheck(interBoard)) continue;
+      if (isInCheck(interBoard, opts)) continue;
     }
     const after = applyMoveToBoard(board, m);
-    if (!isInCheck(after)) legal.push(m);
+    if (!isInCheck(after, opts)) legal.push(m);
   }
   return legal;
 }
@@ -275,17 +279,18 @@ export function generateChessMoves(state) {
 
 export function generateCheckerMoves(state) {
   const board = state.board;
+  const opts = state.options || {};
   const moves = [];
   for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
     const p = board[r][c];
-    if (p && p.side === SIDE_CHECKERS) moves.push(...checkerMovesFor(board, r, c));
+    if (p && p.side === SIDE_CHECKERS) moves.push(...checkerMovesFor(board, r, c, opts));
   }
   return moves;
 }
 
-function checkerMovesFor(board, r, c) {
+function checkerMovesFor(board, r, c, options) {
   const piece = board[r][c];
-  const dirs = checkerDirs(piece);
+  const dirs = checkerDirs(piece, options);
   const out = [];
   // Simple moves
   for (const [dr, dc] of dirs) {
@@ -299,7 +304,7 @@ function checkerMovesFor(board, r, c) {
   // Capture chains (no forced, can stop at any landing)
   const virtual = cloneBoard(board);
   virtual[r][c] = null;
-  expandCaptures(virtual, piece, [r, c], r, c, [], [], out);
+  expandCaptures(virtual, piece, [r, c], r, c, [], [], out, options);
   // Tag promote-to-king on any chain that ends at row 0 (for men)
   for (const m of out) {
     if (piece.type === "M" && m.to[0] === 0) m.promoteToKing = true;
@@ -307,8 +312,8 @@ function checkerMovesFor(board, r, c) {
   return out;
 }
 
-function expandCaptures(board, piece, origin, curR, curC, captured, path, out) {
-  const dirs = checkerDirs(piece);
+function expandCaptures(board, piece, origin, curR, curC, captured, path, out, options) {
+  const dirs = checkerDirs(piece, options);
   for (const [dr, dc] of dirs) {
     const jr = curR + dr, jc = curC + dc;
     const lr = curR + 2 * dr, lc = curC + 2 * dc;
@@ -330,7 +335,7 @@ function expandCaptures(board, piece, origin, curR, curC, captured, path, out) {
     // Recurse on virtual board with jumped piece removed
     const next = cloneBoard(board);
     next[jr][jc] = null;
-    expandCaptures(next, piece, origin, lr, lc, newCaptured, newPath, out);
+    expandCaptures(next, piece, origin, lr, lc, newCaptured, newPath, out, options);
   }
 }
 

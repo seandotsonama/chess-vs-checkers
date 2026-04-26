@@ -74,7 +74,8 @@ function goToMenu() {
 
 function startGame(m) {
   mode = m;
-  state = createInitialState();
+  const backwardCheckers = !!document.getElementById("opt-backward-checkers")?.checked;
+  state = createInitialState({ backwardCheckers });
   selected = null;
   busy = false;
   aiPaused = false;
@@ -153,7 +154,7 @@ function render() {
     }
   }
   // Check indicator
-  if (isInCheck(state.board)) {
+  if (isInCheck(state.board, state.options)) {
     let kingSq = null;
     for (let r = 0; r < 8 && !kingSq; r++) for (let c = 0; c < 8; c++) {
       const p = state.board[r][c];
@@ -171,7 +172,7 @@ function updateStatus() {
     statusEl.classList.remove("check");
     return;
   }
-  const inCheck = state.turn === SIDE_CHESS && isInCheck(state.board);
+  const inCheck = state.turn === SIDE_CHESS && isInCheck(state.board, state.options);
   const who = state.turn === SIDE_CHESS ? "Chess" : "Checkers";
   statusEl.textContent = inCheck ? `${who} to move — check!` : `${who} to move`;
   statusEl.classList.toggle("check", inCheck);

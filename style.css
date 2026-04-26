@@ -55,6 +55,17 @@ html, body {
 .rules-summary strong { color: var(--accent); }
 #menu h2 { margin: 0 0 16px; font-weight: 500; }
 
+.options {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin: 0 0 24px;
+  max-width: 560px;
+  width: 100%;
+}
+.opt { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; color: var(--text); }
+.opt input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+
 .modes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; max-width: 560px; width: 100%; }
 .mode-btn {
   background: var(--panel);
