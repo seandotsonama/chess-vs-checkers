@@ -10,6 +10,7 @@ const AI_DEPTH = 3;
 const $ = (sel) => document.querySelector(sel);
 const menu = $("#menu");
 const game = $("#game");
+const sim = $("#sim");
 const boardEl = $("#board");
 const statusEl = $("#status");
 const aiControls = $("#ai-controls");
@@ -34,7 +35,10 @@ let captured = { byChess: [], byCheckers: [] };
 
 // ---------- Mode selection ----------
 document.querySelectorAll(".mode-btn").forEach((btn) => {
-  btn.addEventListener("click", () => startGame(btn.dataset.mode));
+  btn.addEventListener("click", () => {
+    if (btn.dataset.mode === "simulation") openSimulation();
+    else startGame(btn.dataset.mode);
+  });
 });
 $("#back-btn").addEventListener("click", goToMenu);
 $("#restart-btn").addEventListener("click", () => startGame(mode));
@@ -65,6 +69,7 @@ document.querySelectorAll("#promotion .promo-choices button").forEach((btn) => {
 function goToMenu() {
   menu.classList.remove("hidden");
   game.classList.add("hidden");
+  sim.classList.add("hidden");
   hideBanner();
   promotion.classList.add("hidden");
   state = null;
@@ -92,6 +97,7 @@ function startGame(m) {
 
   menu.classList.add("hidden");
   game.classList.remove("hidden");
+  sim.classList.add("hidden");
   hideBanner();
 
   buildBoard();
@@ -338,3 +344,152 @@ window.addEventListener("keydown", (e) => {
     if (state) render();
   }
 });
+
+// ---------- Simulation Mode ----------
+let simRunning = false;
+let simStop = false;
+
+function openSimulation() {
+  menu.classList.add("hidden");
+  game.classList.add("hidden");
+  sim.classList.remove("hidden");
+  // Sync the backward checkbox to the menu's value as a convenience
+  const menuOpt = document.getElementById("opt-backward-checkers");
+  document.getElementById("sim-backward").checked = menuOpt?.checked || false;
+  resetSimUI();
+}
+
+function resetSimUI() {
+  document.getElementById("sim-progress").textContent = "Idle.";
+  document.getElementById("sim-chart").innerHTML = "";
+  document.getElementById("sim-legend").innerHTML = "";
+}
+
+document.getElementById("sim-back").addEventListener("click", () => {
+  simStop = true;
+  goToMenu();
+});
+
+document.getElementById("sim-run").addEventListener("click", runSimulation);
+document.getElementById("sim-stop").addEventListener("click", () => {
+  simStop = true;
+});
+
+async function runSimulation() {
+  if (simRunning) return;
+  const total = parseInt(document.getElementById("sim-count").value, 10) || 1;
+  const depth = parseInt(document.getElementById("sim-depth").value, 10) || 2;
+  const maxPlies = parseInt(document.getElementById("sim-max-plies").value, 10) || 200;
+  const backward = document.getElementById("sim-backward").checked;
+
+  simRunning = true;
+  simStop = false;
+  document.getElementById("sim-run").disabled = true;
+  document.getElementById("sim-stop").disabled = false;
+
+  const results = { chess: 0, checkers: 0, inconclusive: 0 };
+  const tStart = performance.now();
+  let lastYield = tStart;
+
+  for (let i = 0; i < total; i++) {
+    if (simStop) break;
+    const outcome = playOneGame({ backwardCheckers: backward }, depth, maxPlies);
+    results[outcome]++;
+    // Yield every ~80ms so UI updates and stop button works
+    const now = performance.now();
+    if (now - lastYield > 80) {
+      updateSimProgress(i + 1, total, results, now - tStart);
+      renderPie(results);
+      await sleep(0);
+      lastYield = performance.now();
+    }
+  }
+  const elapsed = performance.now() - tStart;
+  updateSimProgress(results.chess + results.checkers + results.inconclusive, total, results, elapsed, true);
+  renderPie(results);
+
+  simRunning = false;
+  document.getElementById("sim-run").disabled = false;
+  document.getElementById("sim-stop").disabled = true;
+}
+
+function updateSimProgress(done, total, results, elapsedMs, finished = false) {
+  const sec = (elapsedMs / 1000).toFixed(1);
+  const rate = done > 0 ? (done / (elapsedMs / 1000)).toFixed(1) : "0.0";
+  const verb = finished ? "Done" : "Running";
+  document.getElementById("sim-progress").textContent =
+    `${verb}: ${done}/${total} games — ${sec}s elapsed (${rate} games/sec). ` +
+    `Chess: ${results.chess}, Checkers: ${results.checkers}, No result: ${results.inconclusive}.`;
+}
+
+function playOneGame(options, depth, maxPlies) {
+  let s = createInitialState(options);
+  for (let p = 0; p < maxPlies; p++) {
+    if (s.winner) return s.winner;
+    const move = pickMove(s, depth);
+    if (!move) {
+      // Side to move has no legal moves — that side loses
+      return s.turn === SIDE_CHESS ? "checkers" : "chess";
+    }
+    s = applyMove(s, move);
+    if (s.winner) return s.winner;
+  }
+  return "inconclusive";
+}
+
+const PIE_COLORS = {
+  chess: "#fafafa",
+  checkers: "#c0392b",
+  inconclusive: "#6b7280",
+};
+const PIE_LABELS = {
+  chess: "Chess wins",
+  checkers: "Checkers wins",
+  inconclusive: "No result",
+};
+
+function renderPie(results) {
+  const total = results.chess + results.checkers + results.inconclusive;
+  const chartEl = document.getElementById("sim-chart");
+  const legendEl = document.getElementById("sim-legend");
+  if (total === 0) {
+    chartEl.innerHTML = "";
+    legendEl.innerHTML = "";
+    return;
+  }
+  const order = ["chess", "checkers", "inconclusive"];
+  let svg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">`;
+  let angle = 0;
+  for (const k of order) {
+    const v = results[k];
+    if (v === 0) continue;
+    if (v === total) {
+      svg += `<circle cx="50" cy="50" r="42" fill="${PIE_COLORS[k]}" stroke="#1d1f24" stroke-width="0.5"/>`;
+      break;
+    }
+    const sweep = (v / total) * Math.PI * 2;
+    svg += `<path d="${arcPath(50, 50, 42, angle, angle + sweep)}" fill="${PIE_COLORS[k]}" stroke="#1d1f24" stroke-width="0.5"/>`;
+    angle += sweep;
+  }
+  svg += `</svg>`;
+  chartEl.innerHTML = svg;
+
+  legendEl.innerHTML = order.map((k) => {
+    const v = results[k];
+    const pct = total > 0 ? ((v / total) * 100).toFixed(1) : "0.0";
+    return `<div class="sim-legend-row">
+      <span><span class="swatch" style="background:${PIE_COLORS[k]}"></span><span class="label">${PIE_LABELS[k]}</span></span>
+      <span class="count">${v} (${pct}%)</span>
+    </div>`;
+  }).join("");
+}
+
+function arcPath(cx, cy, r, a0, a1) {
+  // angles in radians, 0 = up
+  const x0 = cx + r * Math.sin(a0);
+  const y0 = cy - r * Math.cos(a0);
+  const x1 = cx + r * Math.sin(a1);
+  const y1 = cy - r * Math.cos(a1);
+  const large = a1 - a0 > Math.PI ? 1 : 0;
+  return `M ${cx} ${cy} L ${x0.toFixed(3)} ${y0.toFixed(3)} A ${r} ${r} 0 ${large} 1 ${x1.toFixed(3)} ${y1.toFixed(3)} Z`;
+}

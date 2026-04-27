@@ -4,13 +4,18 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Chess vs Checkers</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=3" />
 </head>
 <body>
   <main id="app">
     <section id="menu" class="screen">
       <h1>Chess <span class="vs">vs</span> Checkers</h1>
       <p class="tagline">Asymmetric warfare on an 8&times;8 board.</p>
+      <blockquote class="kobe-quote">
+        <span class="kobe-mark">&ldquo;</span>
+        <span class="kobe-text">These young guys are playing checkers. I&rsquo;m out there playing chess.</span>
+        <cite class="kobe-cite">&mdash; Kobe Bryant</cite>
+      </blockquote>
       <div class="rules-summary">
         <div><strong>Chess</strong> wins by capturing all 12 checkers.</div>
         <div><strong>Checkers</strong> wins by checkmating the chess king.</div>
@@ -29,6 +34,54 @@
         <button class="mode-btn" data-mode="human-chess">Play as Chess (vs AI)</button>
         <button class="mode-btn" data-mode="human-checkers">Play as Checkers (vs AI)</button>
         <button class="mode-btn" data-mode="ai-ai">Computer vs Computer</button>
+        <button class="mode-btn full-row" data-mode="simulation">Simulation Mode</button>
+      </div>
+    </section>
+
+    <section id="sim" class="screen hidden">
+      <header class="game-header">
+        <button id="sim-back" class="ghost">&larr; Menu</button>
+        <div class="status">Simulation</div>
+        <div style="width:74px"></div>
+      </header>
+
+      <div class="sim-body">
+        <div class="sim-controls">
+          <h2>Simulation settings</h2>
+          <label class="sim-row">
+            <span>Number of games</span>
+            <input type="number" id="sim-count" value="100" min="1" max="2000" />
+          </label>
+          <label class="sim-row">
+            <span>AI search depth</span>
+            <select id="sim-depth">
+              <option value="1">1 (fastest)</option>
+              <option value="2" selected>2 (default)</option>
+              <option value="3">3 (slow)</option>
+            </select>
+          </label>
+          <label class="sim-row">
+            <span>Max plies per game</span>
+            <input type="number" id="sim-max-plies" value="200" min="20" max="1000" />
+          </label>
+          <label class="sim-row checkbox">
+            <input type="checkbox" id="sim-backward" />
+            <span>Checkers can move backwards</span>
+          </label>
+          <div class="sim-actions">
+            <button id="sim-run">Run simulation</button>
+            <button id="sim-stop" class="ghost" disabled>Stop</button>
+          </div>
+        </div>
+
+        <div class="sim-results">
+          <h2>Results</h2>
+          <div class="sim-progress" id="sim-progress">Idle.</div>
+          <div class="sim-chart-wrap">
+            <div id="sim-chart" class="sim-chart"></div>
+            <div id="sim-legend" class="sim-legend"></div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -86,6 +139,6 @@
     </section>
   </main>
 
-  <script type="module" src="js/main.js"></script>
+  <script type="module" src="js/main.js?v=3"></script>
 </body>
 </html>
